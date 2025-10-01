@@ -1,0 +1,25 @@
+[project]
+name = "misis-lct"
+version = "0.1.0"
+description = "Сервис анализа отзывов для Газпромбанка"
+authors = [
+    {name = "avolxn", email = "vlad.eldashov2303@mail.ru"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "fastapi (>=0.118.0,<0.119.0)",
+    "uvicorn (>=0.37.0,<0.38.0)",
+    "langgraph (>=0.6.8,<0.7.0)",
+    "langchain (>=0.3.27,<0.4.0)",
+    "langchain-google-genai (>=2.1.12,<3.0.0)",
+    "pydantic-settings (>=2.11.0,<3.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "misis_lct", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
