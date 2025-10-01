@@ -10,7 +10,7 @@ from typing import Any
 from langchain_core.messages import AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from misis_lct.core.config import GOOGLE_API_KEY, LLM_NAME
+from lct_gazprombank.core.config import settings
 
 model_exception_message = """Ошибка при инициализации языковой модели (LLM):
 Убедитесь, что указан верный API ключ в .env файле.
@@ -32,8 +32,8 @@ class LLM:
         """
         try:
             llm = ChatGoogleGenerativeAI(
-                model=LLM_NAME,
-                google_api_key=GOOGLE_API_KEY,
+                model=settings.LLM_NAME,
+                google_api_key=settings.GOOGLE_API_KEY,
                 temperature=0.0,
             )
 
@@ -95,13 +95,13 @@ class LLM:
 
 
 def format_reviews(reviews: list[str]) -> str:
-    """Форматирование списка отзывов в читаемый текст.
+    """Форматирование списка отзывов в читаемый текст
 
     Args:
-        reviews: Список текстов отзывов
+        reviews (list[str]): Список текстов отзывов
 
     Returns:
-        Отформатированная строка с пронумерованными отзывами
+        str: Отформатированная строка с пронумерованными отзывами
     """
     formatted_reviews = ""
     for i, review in enumerate(reviews, 1):
@@ -114,11 +114,11 @@ def format_reviews_with_categories(reviews: list[str], categories: list[list[str
     """Форматирование списка отзывов с категориями в читаемый текст
 
     Args:
-        reviews: Список текстов отзывов
-        categories: Список категорий для каждого отзыва
+        reviews (list[str]): Список текстов отзывов
+        categories (list[list[str]]): Список категорий для каждого отзыва
 
     Returns:
-        Отформатированная строка с отзывами и их категориями
+        str: Отформатированная строка с отзывами и их категориями
     """
     formatted_reviews = ""
     for i, (review, cats) in enumerate(zip(reviews, categories, strict=True), 1):
@@ -151,35 +151,28 @@ def clean_json_response(response: AIMessage) -> str:
 
 
 def parse_review_categories(response: AIMessage) -> list[list[str]]:
-    """Парсинг ответа модели в список категорий для каждого отзыва.
+    """Парсинг ответа модели в список категорий для каждого отзыва
 
     Args:
-        response: Ответ модели
+        response (AIMessage): Ответ модели
 
     Returns:
-        Список категорий для каждого отзыва
+        list[list[str]]: Список категорий для каждого отзыва
 
     Raises:
-        ValueError: Если не удалось распарсить ответ
+        ValueError: Код 400 - Если не удалось распарсить ответ
     """
     try:
-        content = response.content
-        content = clean_json_response(content)
-
+        content = clean_json_response(response)
         data = json.loads(content)
-        reviews_data = data.get("reviews", [])
+        reviews = data["reviews"]
+        reviews.sort(key=lambda x: x["review_id"])
 
-        if not reviews_data:
-            raise ValueError("Ответ не содержит данных о отзывах")
-
-        reviews_data.sort(key=lambda x: x.get("review_id", 0))
         reviews_categories = []
-        for review in reviews_data:
-            categories = review.get("categories", ["other"])
-            if not categories:
-                categories = ["other"]
-            reviews_categories.append(categories)
-
+        for review in reviews:
+            categories = review["categories"]
+            categories_normalized = [category.lower().strip() for category in categories]
+            reviews_categories.append(categories_normalized)
         return reviews_categories
 
     except Exception as e:
@@ -187,33 +180,26 @@ def parse_review_categories(response: AIMessage) -> list[list[str]]:
 
 
 def parse_review_sentiments(response: AIMessage) -> list[dict[str, str]]:
-    """
-    Парсинг ответа модели в список тональностей для каждого отзыва
+    """Парсинг ответа модели в список тональностей для каждого отзыва
 
     Args:
-        response: Ответ модели
+        response (AIMessage): Ответ модели
 
     Returns:
-        Список словарей {категория: тональность} для каждого отзыва
+        list[dict[str, str]]: Список словарей {категория: тональность} для каждого отзыва
 
     Raises:
-        ValueError: Если не удалось распарсить ответ
+        ValueError: Код 400 - Если не удалось распарсить ответ
     """
     try:
-        content = response.content
-        content = clean_json_response(content)
-
+        content = clean_json_response(response)
         data = json.loads(content)
-        reviews_data = data.get("reviews", [])
-
-        if not reviews_data:
-            raise ValueError("Ответ не содержит данных о отзывах")
-
-        reviews_data.sort(key=lambda x: x.get("review_id", 0))
+        reviews = data["reviews"]
+        reviews.sort(key=lambda x: x["review_id"])
 
         reviews_sentiments = []
-        for review in reviews_data:
-            sentiments = review.get("sentiments", {})
+        for review in reviews:
+            sentiments = review["sentiments"]
 
             normalized_sentiments = {}
             for category, sentiment in sentiments.items():

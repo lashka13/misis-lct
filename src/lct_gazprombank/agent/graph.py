@@ -2,12 +2,12 @@
 
 from langgraph.graph import END, START, StateGraph
 
-from misis_lct.models.prompts import (
+from lct_gazprombank.agent.prompts import (
     CLASSIFY_CATEGORY_MULTIPLE_REVIEWS_PROMPT,
     CLASSIFY_SENTIMENT_MULTIPLE_REVIEWS_PROMPT,
 )
-from misis_lct.models.state import ClassificationState
-from misis_lct.models.utils import (
+from lct_gazprombank.agent.state import ClassificationState
+from lct_gazprombank.agent.utils import (
     format_reviews,
     format_reviews_with_categories,
     llm,
