@@ -40,7 +40,7 @@ graph LR
 
     subgraph AI Агент
         E[LangChain + LangGraph]:::ai
-        F[LLM GPT-OSS-20B<br/>(через OpenRouter API)]:::model
+        F[LLM GPT-OSS-20B (через OpenRouter API)]:::model
     end
 
     A1 -->|Парсер| B
