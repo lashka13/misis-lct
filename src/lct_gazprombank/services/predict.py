@@ -1,7 +1,7 @@
 """Сервис для предсказаний."""
 
 from lct_gazprombank.agent import classification_agent
-from lct_gazprombank.schemas import ReviewInput, ReviewOutput
+from lct_gazprombank.schemas import ReviewInput, ReviewInputWithMetadata, ReviewOutput
 from lct_gazprombank.utils import load_categories_from_file
 
 
@@ -18,11 +18,11 @@ class ClassificationService:
         self.available_categories = available_categories
         self.batch_size = batch_size
 
-    async def predict(self, reviews: list[ReviewInput]) -> list[ReviewOutput]:
+    async def predict(self, reviews: list[ReviewInput] | list[ReviewInputWithMetadata]) -> list[ReviewOutput]:
         """Предсказание тем и тональности для отзывов с батчингом
 
         Args:
-            reviews (list[ReviewInput]): Список отзывов для анализа
+            reviews: Список отзывов для анализа (с метаданными или без)
 
         Returns:
             list[ReviewOutput]: Список классифицированных отзывов
@@ -36,11 +36,11 @@ class ClassificationService:
 
         return results
 
-    async def _predict_batch(self, reviews: list[ReviewInput]) -> list[ReviewOutput]:
+    async def _predict_batch(self, reviews: list[ReviewInput] | list[ReviewInputWithMetadata]) -> list[ReviewOutput]:
         """Предсказание для одного батча отзывов
 
         Args:
-            reviews (list[ReviewInput]): Батч отзывов
+            reviews: Батч отзывов (с метаданными или без)
 
         Returns:
             list[ReviewOutput]: Список классифицированных отзывов
@@ -59,15 +59,22 @@ class ClassificationService:
         sentiments_list = result.get("sentiments", [])
 
         for idx, review in enumerate(reviews):
-            review_topics = categories_list[idx] if idx < len(categories_list) else ["прочее"]
+            topics = categories_list[idx] if idx < len(categories_list) else ["прочее"]
             sentiment_dict = sentiments_list[idx] if idx < len(sentiments_list) else {}
-            sentiments = [sentiment_dict.get(topic, "нейтрально") for topic in review_topics]
+            sentiments = [sentiment_dict.get(topic, "нейтрально") for topic in topics]
+
+            # Получаем метаданные если они есть
+            date = getattr(review, "date", None)
+            source = getattr(review, "source", None)
 
             classifications.append(
                 ReviewOutput(
                     id=review.id,
-                    topics=review_topics,
+                    text=review.text,
+                    topics=topics,
                     sentiments=sentiments,
+                    date=date,
+                    source=source,
                 )
             )
 
@@ -75,8 +82,7 @@ class ClassificationService:
 
 
 def get_classification_service(batch_size: int = 10) -> ClassificationService:
-    """
-    Получить синглтон сервиса классификации
+    """Получить синглтон сервиса классификации
 
     Args:
         batch_size (int, optional): Размер батча для обработки (по умолчанию 10 для оптимизации API лимитов)

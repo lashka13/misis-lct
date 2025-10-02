@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from lct_gazprombank.core.config import settings
-from lct_gazprombank.routers.predict import router as predict_router
+from lct_gazprombank.routers import predict_router, root_router, statistics_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -18,4 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(root_router, tags=["root"])
 app.include_router(predict_router, tags=["prediction"])
+app.include_router(statistics_router, tags=["statistics"])
