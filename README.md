@@ -108,7 +108,7 @@ http://localhost:5173
 
 API endpointa для predict лежит на 
 ```
-https://lct.misis-team.ru:8000/api/predict
+http://localhost:5173/api/predict
 ```
 
 ---
