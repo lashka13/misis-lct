@@ -3,95 +3,45 @@
 import asyncio
 import json
 import re
-from collections.abc import Callable
-from types import SimpleNamespace
-from typing import Any
+import time
+from collections import deque
 
 from langchain_core.messages import AIMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 
-from lct_gazprombank.core.config import settings
-
-model_exception_message = """Ошибка при инициализации языковой модели (LLM):
-Убедитесь, что указан верный API ключ в .env файле.
-Gemini модель из Google AI Studio не поддерживается на территории Российской Федерации.
-Для корректной работы модели необходимо использовать VPN.
-Не все VPN сервисы работают корректно: бывают случаи некорректного обхода блокировок или длительных задержек при вызове модели.
-Стабильно работает бесплатный VPN Proxy Master (доступен в AppStore). Может потребоваться множественное переподключение VPN."""
+from lct_gazprombank.core import settings
 
 
-class LLM:
-    """Обертка над моделью для вызова с повторением при превышении квоты/лимита запросов."""
+class RateLimiter:
+    """Rate limiter для ограничения количества запросов в минуту"""
 
-    def __init__(self) -> None:
+    def __init__(self, max_requests_per_minute: int):
+        """Инициализация rate limiter
+
+        Args:
+            max_requests_per_minute (int): Максимальное количество запросов в минуту
         """
-        Получить Gemini модель из Google AI Studio.
+        self.max_requests = max_requests_per_minute
+        self.requests = deque()
+        self._lock = asyncio.Lock()
 
-        Raises:
-            RuntimeError: Ошибка при инициализации языковой модели
-        """
-        try:
-            llm = ChatGoogleGenerativeAI(
-                model=settings.LLM_NAME,
-                google_api_key=settings.GOOGLE_API_KEY,
-                temperature=0.0,
-            )
+    async def acquire(self):
+        """Ожидание возможности сделать запрос с учетом rate limit"""
+        async with self._lock:
+            now = time.time()
 
-            _ = llm.invoke("Hello!")
+            while self.requests and self.requests[0] < now - 60:
+                self.requests.popleft()
 
-            self.llm = llm
+            if len(self.requests) >= self.max_requests:
+                sleep_time = 60 - (now - self.requests[0])
+                if sleep_time > 0:
+                    await asyncio.sleep(sleep_time)
+                    now = time.time()
+                    while self.requests and self.requests[0] < now - 60:
+                        self.requests.popleft()
 
-        except Exception:
-            raise RuntimeError(model_exception_message) from None
-
-    async def _arun_with_retry(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        """Выполнить функцию с повторными попытками при ошибках"""
-        max_retries = 3
-
-        for attempt in range(max_retries):
-            try:
-                return await func(*args, **kwargs)
-            except Exception as e:
-                error_text = str(e)
-                is_quota = "429" in error_text or "ResourceExhausted" in error_text or "quota" in error_text.lower()
-
-                if not is_quota or attempt == max_retries - 1:
-                    raise
-
-                print("Превышен лимит API, ожидание 60 секунд...")
-                await asyncio.sleep(60)
-
-        raise RuntimeError(f"Не удалось выполнить запрос после {max_retries} попыток")
-
-    def _wrap_runnable(self, runnable: Any) -> Any:
-        """Обёртка runnable: синхронные и асинхронные вызовы через ретраи"""
-
-        async def ainvoke(*args: Any, **kwargs: Any) -> Any:
-            return await self._arun_with_retry(runnable.ainvoke, *args, **kwargs)
-
-        async def astream(*args: Any, **kwargs: Any) -> Any:
-            return await self._arun_with_retry(runnable.astream, *args, **kwargs)
-
-        return SimpleNamespace(
-            ainvoke=ainvoke,
-            astream=astream,
-        )
-
-    def bind_tools(self, *args: Any, **kwargs: Any) -> Any:
-        """Привязать инструменты к модели"""
-        return self._wrap_runnable(self.llm.bind_tools(*args, **kwargs))
-
-    def with_structured_output(self, *args: Any, **kwargs: Any) -> Any:
-        """Получить структурированный вывод"""
-        return self._wrap_runnable(self.llm.with_structured_output(*args, **kwargs))
-
-    async def ainvoke(self, *args: Any, **kwargs: Any) -> Any:
-        """Асинхронный вызов модели"""
-        return await self._arun_with_retry(self.llm.ainvoke, *args, **kwargs)
-
-    async def astream(self, *args: Any, **kwargs: Any) -> Any:
-        """Асинхронный стрим модели"""
-        return await self._arun_with_retry(self.llm.astream, *args, **kwargs)
+            self.requests.append(time.time())
 
 
 def format_reviews(reviews: list[str]) -> str:
@@ -218,5 +168,16 @@ def parse_review_sentiments(response: AIMessage) -> list[dict[str, str]]:
         raise ValueError(f"Ошибка парсинга ответа модели в тональности: {e}") from e
 
 
+def setup_llm() -> None:
+    llm = ChatOpenAI(
+        model=settings.LLM_NAME,
+        api_key=settings.OPENROUTER_API_KEY,
+        base_url="https://openrouter.ai/api/v1",
+        temperature=0.0,
+    )
+
+    return llm
+
+
 # Синглтон
-llm = LLM()
+llm = setup_llm()

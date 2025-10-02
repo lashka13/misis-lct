@@ -25,6 +25,10 @@ async def classify_category(state: ClassificationState) -> ClassificationState:
     Returns:
         ClassificationState: Обновленное состояние с категориями
     """
+    rate_limiter = state.get("rate_limiter")
+    if rate_limiter:
+        await rate_limiter.acquire()
+
     reviews = state["reviews"]
     formatted_reviews = format_reviews(reviews)
     available_categories = state["available_categories"]
@@ -50,6 +54,10 @@ async def classify_sentiments(state: ClassificationState) -> ClassificationState
     Returns:
         ClassificationState: Обновленное состояние с тональностями
     """
+    rate_limiter = state.get("rate_limiter")
+    if rate_limiter:
+        await rate_limiter.acquire()
+
     reviews = state["reviews"]
     categories = state["categories"]
     reviews_with_categories = format_reviews_with_categories(reviews, categories)

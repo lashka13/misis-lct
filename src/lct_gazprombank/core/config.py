@@ -6,12 +6,12 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Review Analysis API"
 
-    LLM_NAME: str = "models/gemma-3-27b-it"
-    GOOGLE_API_KEY: str
+    LLM_NAME: str = "openai/gpt-oss-20b:free"
+    OPENROUTER_API_KEY: str
 
     BATCH_SIZE: int = 15
     MAX_CONCURRENT_REQUESTS: int = 10
-    RATE_LIMIT_PER_MINUTE: int = 30
+    RATE_LIMIT_PER_MINUTE: int = 20
 
     model_config = SettingsConfigDict(
         env_file=".env",

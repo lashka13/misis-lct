@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class ClassificationState(TypedDict):
@@ -8,3 +8,4 @@ class ClassificationState(TypedDict):
     reviews: list[str]
     categories: list[list[str]]
     sentiments: list[dict[str, str]]
+    rate_limiter: Any
