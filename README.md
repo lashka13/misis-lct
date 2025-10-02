@@ -97,7 +97,7 @@ cd <директория проекта>
 docker compose up
 ```
 
-API endpointa лежит на 
+API endpointa для predict лежит на 
 ```
 https://lct.misis-team.ru:8000/api/predict
 ```
