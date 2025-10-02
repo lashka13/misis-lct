@@ -171,7 +171,7 @@ def parse_review_categories(response: AIMessage) -> list[list[str]]:
         reviews_categories = []
         for review in reviews:
             categories = review["categories"]
-            categories_normalized = [category.lower().strip() for category in categories]
+            categories_normalized = [category.title().strip() for category in categories]
             reviews_categories.append(categories_normalized)
         return reviews_categories
 

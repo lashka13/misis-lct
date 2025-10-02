@@ -8,17 +8,19 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.11,<4.0"
 dependencies = [
-    "fastapi>=0.118.0",
-    "uvicorn[standard]>=0.37.0",
-    "pydantic>=2.11.0",
-    "pydantic-settings>=2.11.0",
-    "langchain>=0.3.27",
-    "langgraph>=0.6.8",
-    "langchain-google-genai>=2.1.12",
+    "langchain-google-genai (<2.1.12)",
+    "langgraph (>=0.6.8,<0.7.0)",
+    "langchain (>=0.3.27,<0.4.0)",
+    "pydantic-settings (>=2.11.0,<3.0.0)",
+    "fastapi (>=0.118.0,<0.119.0)",
+    "uvicorn (>=0.37.0,<0.38.0)"
 ]
 
 [tool.poetry]
 packages = [{include = "lct_gazprombank", from = "src"}]
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.30.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]

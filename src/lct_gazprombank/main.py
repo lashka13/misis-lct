@@ -1,5 +1,3 @@
-"""Главный модуль FastAPI приложения."""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,5 +18,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Подключение роутеров
 app.include_router(predict_router, tags=["prediction"])
