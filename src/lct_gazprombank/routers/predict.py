@@ -25,7 +25,7 @@ async def predict(request: PredictRequest) -> PredictResponse:
         if not request.data:
             raise HTTPException(status_code=400, detail="Список отзывов не может быть пустым")
 
-        service = get_classification_service(batch_size=10)
+        service = get_classification_service()
         result = await service.predict(request.data)
 
         return PredictResponse(predictions=result)
@@ -34,6 +34,3 @@ async def predict(request: PredictRequest) -> PredictResponse:
         raise HTTPException(status_code=400, detail=f"Неверный формат данных: {str(e)}") from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}") from e
-
-
-

@@ -26,9 +26,7 @@ async def load_data(request: LoadDataRequest) -> LoadDataResponse:
         request (LoadDataRequest): Отзывы с обязательными датами и опциональными источниками
 
     Raises:
-        HTTPException: Ошибка валидации данных
-        HTTPException: Ошибка обработки данных
-        HTTPException: Ошибка загрузки данных
+        HTTPException: Ошибка валидации, обработки, загрузки данных
 
     Returns:
         LoadDataResponse: Количество загруженных отзывов и результаты классификации
@@ -37,7 +35,7 @@ async def load_data(request: LoadDataRequest) -> LoadDataResponse:
         if not request.data:
             raise HTTPException(status_code=400, detail="Список отзывов не может быть пустым")
 
-        service = get_classification_service(batch_size=10)
+        service = get_classification_service()
         result = await service.predict(request.data)
 
         storage = get_storage()

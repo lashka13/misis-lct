@@ -1,6 +1,8 @@
-"""Сервис для предсказаний."""
+import asyncio
+import time
 
 from lct_gazprombank.agent import classification_agent
+from lct_gazprombank.core import settings
 from lct_gazprombank.schemas import ReviewInput, ReviewInputWithMetadata, ReviewOutput
 from lct_gazprombank.utils import load_categories_from_file
 
@@ -8,33 +10,47 @@ from lct_gazprombank.utils import load_categories_from_file
 class ClassificationService:
     """Сервис для классификации отзывов и определения тональности."""
 
-    def __init__(self, available_categories: list[str], batch_size: int = 10):
-        """Инициализация сервиса
+    def __init__(self, available_categories: list[str]):
+        """Инициализация сервиса классификации
 
         Args:
             available_categories (list[str]): Список доступных категорий
-            batch_size (int, optional): Размер батча для обработки (по умолчанию 10 для оптимизации API лимитов)
         """
         self.available_categories = available_categories
-        self.batch_size = batch_size
+        self._semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_REQUESTS)
+        self._request_times: list[float] = []
+
+    async def _wait_for_rate_limit(self) -> None:
+        """Ожидание для соблюдения rate limit"""
+        now = time.time()
+        self._request_times = [t for t in self._request_times if now - t < 60]
+
+        if len(self._request_times) >= settings.RATE_LIMIT_PER_MINUTE:
+            wait_time = 60 - (now - self._request_times[0]) + 0.1
+            if wait_time > 0:
+                await asyncio.sleep(wait_time)
+                self._request_times = [t for t in self._request_times if time.time() - t < 60]
+
+        self._request_times.append(time.time())
 
     async def predict(self, reviews: list[ReviewInput] | list[ReviewInputWithMetadata]) -> list[ReviewOutput]:
-        """Предсказание тем и тональности для отзывов с батчингом
+        """Предсказание тем и тональности для отзывов с параллельной обработкой
 
         Args:
-            reviews: Список отзывов для анализа (с метаданными или без)
+            reviews: Список отзывов для анализа
 
         Returns:
             list[ReviewOutput]: Список классифицированных отзывов
         """
-        results = []
+        batches = [reviews[i : i + settings.BATCH_SIZE] for i in range(0, len(reviews), settings.BATCH_SIZE)]
 
-        for i in range(0, len(reviews), self.batch_size):
-            batch = reviews[i : i + self.batch_size]
-            batch_results = await self._predict_batch(batch)
-            results.extend(batch_results)
+        async def process_with_limits(batch: list) -> list[ReviewOutput]:
+            async with self._semaphore:
+                await self._wait_for_rate_limit()
+                return await self._predict_batch(batch)
 
-        return results
+        responses = await asyncio.gather(*[process_with_limits(batch) for batch in batches])
+        return [item for response in responses for item in response]
 
     async def _predict_batch(self, reviews: list[ReviewInput] | list[ReviewInputWithMetadata]) -> list[ReviewOutput]:
         """Предсказание для одного батча отзывов
@@ -54,18 +70,15 @@ class ClassificationService:
             }
         )
 
-        classifications = []
         categories_list = result.get("categories", [])
         sentiments_list = result.get("sentiments", [])
 
+        classifications = []
         for idx, review in enumerate(reviews):
-            topics = categories_list[idx] if idx < len(categories_list) else ["прочее"]
-            sentiment_dict = sentiments_list[idx] if idx < len(sentiments_list) else {}
-            sentiments = [sentiment_dict.get(topic, "нейтрально") for topic in topics]
-
-            # Получаем метаданные если они есть
-            date = getattr(review, "date", None)
-            source = getattr(review, "source", None)
+            # Безопасное получение данных с fallback
+            topics = categories_list[idx] if idx < len(categories_list) else ["Прочее"]
+            sentiments_dict = sentiments_list[idx] if idx < len(sentiments_list) else {}
+            sentiments = [sentiments_dict.get(topic, "нейтрально") for topic in topics]
 
             classifications.append(
                 ReviewOutput(
@@ -73,26 +86,19 @@ class ClassificationService:
                     text=review.text,
                     topics=topics,
                     sentiments=sentiments,
-                    date=date,
-                    source=source,
+                    date=getattr(review, "date", None),
+                    source=getattr(review, "source", None),
                 )
             )
 
         return classifications
 
 
-def get_classification_service(batch_size: int = 10) -> ClassificationService:
-    """Получить синглтон сервиса классификации
-
-    Args:
-        batch_size (int, optional): Размер батча для обработки (по умолчанию 10 для оптимизации API лимитов)
+def get_classification_service() -> ClassificationService:
+    """Получить экземпляр сервиса классификации
 
     Returns:
         ClassificationService: Сервис классификации
     """
-    categories = load_categories_from_file()
-    classification_service = ClassificationService(
-        available_categories=categories,
-        batch_size=batch_size,
-    )
-    return classification_service
+    available_categories = load_categories_from_file()
+    return ClassificationService(available_categories=available_categories)
