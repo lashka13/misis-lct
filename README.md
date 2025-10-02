@@ -23,6 +23,8 @@
 
 Ссылка на дашборд: https://lct.misis-team.ru
 
+Endpoint для predict доступен по https://lct.misis-team.ru:8000/api/predict
+
 ---
 
 ## ⚙️ Архитектура
