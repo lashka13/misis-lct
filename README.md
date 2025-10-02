@@ -21,6 +21,8 @@
 
 Фронтенд написан на **React**, бэкенд на **Python (FastAPI)**, база данных — **PostgreSQL с использованием SQLAlchemy + asyncpg**. В систему загружено **25 000 исторических отзывов**, предварительно спаршенных с источников.
 
+Ссылка на дашборд: https://lct.misis-team.ru
+
 ---
 
 ## ⚙️ Архитектура
@@ -93,6 +95,11 @@ graph LR
 git clone <репозиторий>
 cd <директория проекта>
 docker compose up
+```
+
+API endpointa лежит на 
+```
+https://lct.misis-team.ru:8000/api/predict
 ```
 
 ---
