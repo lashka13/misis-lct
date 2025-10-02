@@ -1,0 +1,26 @@
+{
+  "name": "Газпромбанк - Аналитика отзывов",
+  "version": "1.0.0",
+  "description": "Интерактивный дашборд для анализа отзывов о продуктах и услугах Газпромбанка",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@material/web": "^2.4.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^2.30.0",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.15.4"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.1.1",
+    "vite": "^5.0.0"
+  }
+}

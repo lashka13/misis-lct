@@ -99,5 +99,18 @@ def get_classification_service() -> ClassificationService:
     Returns:
         ClassificationService: Сервис классификации
     """
-    available_categories = ["debitcards", "creditcards", "hypothec", "autocredits", "credits", "restructing", "deposits", "transfers", "remote", "other", "mobile_app", "individual"]
+    available_categories = [
+            "Дебетовые карты",
+            "Кредитные карты",
+            "Ипотека",
+            "Автокредиты",
+            "Кредиты",
+            "Реструктуризация",
+            "Вклады",
+            "Переводы",
+            "Дистанционное обслуживание",
+            "Мобильное приложение",
+            "Обслуживание",
+            "Прочее",
+        ]
     return ClassificationService(available_categories=available_categories)

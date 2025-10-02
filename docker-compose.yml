@@ -11,6 +11,23 @@ services:
     ports:
       - "5433:5432" # Exposed only internally
 
+  # front
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    container_name: frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - db
+
   # back
   backend:
     build:
@@ -24,16 +41,9 @@ services:
     env_file:
       - ./.env
     depends_on:
-      - db
+      - frontend
 
-  # front
-  # frontend:
-  #   build: ./frontend # docker front
-  #   container_name: coffee_frontend
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - telegram      # run front after back
+
 
 
 volumes:
